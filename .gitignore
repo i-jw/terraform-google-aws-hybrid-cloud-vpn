@@ -9,3 +9,5 @@
 *.tfvars
 .env
 .idea
+.git
+.github
