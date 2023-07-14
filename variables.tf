@@ -12,17 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-variable "transit_gateway_id" {
+variable "project_id" {
   type        = string
-  description = "AWS Transit Gateway ID"
+  description = "Google project id"
+}
+
+variable "gcp_region" {
+  type        = string
+  default     = "us-west1"
+  description = "Google region"
+}
+
+variable "aws_region" {
+  type        = string
+  default     = "us-west-2"
+  description = "AWS region"
 }
 
 variable "google_network" {
   type        = string
   default     = "default"
   description = "Google VPN Network name, can be either a name or a self_link"
-
 }
+variable "aws_vpc_id" {
+  type        = string
+  default     = "default"
+  description = "AWS VPC Network id, can be either a name or a self_link"
+}
+
 variable "amazon_side_asn" {
   type        = number
   default     = 64512

@@ -1,16 +1,4 @@
-# Copyright 2020 Spotify AB
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+
 locals {
   ha_vpn_interfaces_ips = [
     for x in google_compute_ha_vpn_gateway.gateway.vpn_interfaces :
@@ -53,8 +41,15 @@ locals {
   }
 }
 
-data "aws_region" "current" {}
-data "google_project" "project" {}
+provider "aws" {
+  version = "~> 3.0"
+  region  = var.aws_region
+}
+
+provider "google-beta" {
+  project = var.project_id
+  region  = var.gcp_region
+}
 
 resource "random_string" "suffix" {
   length  = 10
@@ -64,8 +59,8 @@ resource "random_string" "suffix" {
 
 resource "google_compute_ha_vpn_gateway" "gateway" {
   provider = google-beta
-  name     = "ha-vpn-gw-to-aws-${data.aws_region.current.name}-${local.suffix}"
-  project  = data.google_project.project.project_id
+  name     = "ha-vpn-gw-to-aws-${local.suffix}"
+  project  = var.project_id
   network  = var.google_network
 }
 
@@ -94,11 +89,13 @@ resource "aws_customer_gateway" "cgw-beta" {
   }
 }
 
-// TODO Track this Issue and implement when ready https://github.com/terraform-providers/terraform-provider-aws/issues/11584
+resource "aws_vpn_gateway" "vpn_gateway" {
+  vpc_id = var.aws_vpc_id
+}
 
 resource "aws_vpn_connection" "vpn-alpha" {
   customer_gateway_id                  = aws_customer_gateway.cgw-alpha.id
-  transit_gateway_id                   = var.transit_gateway_id
+  vpn_gateway_id                       = aws_vpn_gateway.vpn_gateway.id
   type                                 = aws_customer_gateway.cgw-alpha.type
   tunnel1_phase1_encryption_algorithms = var.aws_vpn_configs.encryption_algorithms
   tunnel2_phase1_encryption_algorithms = var.aws_vpn_configs.encryption_algorithms
@@ -120,7 +117,7 @@ resource "aws_vpn_connection" "vpn-alpha" {
 
 resource "aws_vpn_connection" "vpn-beta" {
   customer_gateway_id                  = aws_customer_gateway.cgw-beta.id
-  transit_gateway_id                   = var.transit_gateway_id
+  vpn_gateway_id                       = aws_vpn_gateway.vpn_gateway.id
   type                                 = aws_customer_gateway.cgw-beta.type
   tunnel1_phase1_encryption_algorithms = var.aws_vpn_configs.encryption_algorithms
   tunnel2_phase1_encryption_algorithms = var.aws_vpn_configs.encryption_algorithms
@@ -142,9 +139,9 @@ resource "aws_vpn_connection" "vpn-beta" {
 
 resource "google_compute_router" "router" {
   provider    = google-beta
-  name        = "cr-to-aws-tgw-ha-vpn-${data.aws_region.current.name}-${local.suffix}"
+  name        = "cr-to-aws-tgw-ha-vpn-${local.suffix}"
   network     = var.google_network
-  description = "Google to AWS via Transit GW connection for AWS region ${data.aws_region.current.name}"
+  description = "Google to AWS via VGW for AWS ${var.aws_region} region"
   bgp {
     asn = var.google_side_asn
     advertise_mode = (
@@ -178,9 +175,9 @@ resource "google_compute_router" "router" {
 
 resource "google_compute_external_vpn_gateway" "external_gateway" {
   provider        = google-beta
-  name            = "aws-${var.transit_gateway_id}-${data.aws_region.current.name}-${local.suffix}"
+  name            = "aws-${local.suffix}"
   redundancy_type = "FOUR_IPS_REDUNDANCY"
-  description     = "AWS Transit GW: ${var.transit_gateway_id} in AWS region ${data.aws_region.current.name}"
+  description     = "AWS region  ${var.aws_region}"
 
   dynamic "interface" {
     for_each = local.external_vpn_gateway_interfaces

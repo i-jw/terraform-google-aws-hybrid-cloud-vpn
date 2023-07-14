@@ -11,28 +11,13 @@ Overview of high-level configurations steps to set up HA VPN with Amazon Web Ser
 
 ### Single Region Example
 ```hcl
-module "tgw-us-east-1" {
-   source          = "terraform-aws-modules/transit-gateway/aws"
-   version         = "1.1.0"
-   name            = "tgw-example-us-east-1"
-   description     = "TGW example shared with several other AWS accounts"
-   amazon_side_asn = "64512"
+export AWS_ACCESS_KEY_ID="KEY_ID"
+export AWS_SECRET_ACCESS_KEY="KEY_SECRET"
+export AWS_REGION="us-west-2"
+terraform init
+terraform apply -auto-approve -var="project_id=PROJECT_ID" -var="google_network=GCP_NETWORK_NAME" -var="aws_vpc_id=AWS_VPC_ID" -var="amazon_side_asn=64512" -var="google_side_asn=65534"
 
-   enable_auto_accept_shared_attachments = true
-   ram_allow_external_principals         = true
 
-   tags = {
-     Purpose = "tgw example"
-   }
-}
-
-module "cb-us-east-1" {
-   source             = "github.com/spotify/terraform-google-aws-hybrid-cloud-vpn"
-   transit_gateway_id = module.tgw-us-east-1.this_ec2_transit_gateway_id
-   google_network     = default
-   amazon_side_asn    = 64512
-   google_side_asn    = 65534
-}
 ```
 
 ### Refrence Docs
@@ -82,7 +67,6 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_transit_gateway_id"></a> [transit\_gateway\_id](#input\_transit\_gateway\_id) | AWS Transit Gateway ID | `string` | n/a | yes |
 | <a name="input_amazon_side_asn"></a> [amazon\_side\_asn](#input\_amazon\_side\_asn) | BGP ASN Number for the AWS side of the VPN | `number` | `64512` | no |
 | <a name="input_aws_vpn_configs"></a> [aws\_vpn\_configs](#input\_aws\_vpn\_configs) | AWS Tunnels Configs for aws\_vpn\_connection. This addresses this [known issue](https://cloud.google.com/network-connectivity/docs/vpn/how-to/creating-ha-vpn). | `map(any)` | <pre>{<br>  "dh_group_numbers": [<br>    "18"<br>  ],<br>  "encryption_algorithms": [<br>    "AES256"<br>  ],<br>  "integrity_algorithms": [<br>    "SHA2-256"<br>  ]<br>}</pre> | no |
 | <a name="input_google_network"></a> [google\_network](#input\_google\_network) | Google VPN Network name, can be either a name or a self\_link | `string` | `"default"` | no |
@@ -96,4 +80,3 @@ No modules.
 |------|-------------|
 | <a name="output_cloud_router"></a> [cloud\_router](#output\_cloud\_router) | Map of cloud router attributes. Map should match the exported resources described in the docs https://www.terraform.io/docs/providers/google/r/compute_router.html |
 | <a name="output_ha_vpn_gateway_interfaces"></a> [ha\_vpn\_gateway\_interfaces](#output\_ha\_vpn\_gateway\_interfaces) | List of objects with interface ID and IP addresses |
-| <a name="output_transit_gateway_attachment_ids"></a> [transit\_gateway\_attachment\_ids](#output\_transit\_gateway\_attachment\_ids) | Set of AWS Transit Gateway Attachement IDs |
