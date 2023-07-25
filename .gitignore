@@ -11,3 +11,4 @@
 .idea
 .git
 .github
+.terraform.lock.hcl

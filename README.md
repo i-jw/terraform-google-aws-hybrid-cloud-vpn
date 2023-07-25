@@ -14,8 +14,17 @@ Overview of high-level configurations steps to set up HA VPN with Amazon Web Ser
 export AWS_ACCESS_KEY_ID="KEY_ID"
 export AWS_SECRET_ACCESS_KEY="KEY_SECRET"
 export AWS_REGION="us-west-2"
+#option 1 : store terraform status in gcs         
+#please replace main.tf line 3 GCS_BUCKET_NAME with your gcs bucket 
+#option 2 : store terraform status local 
+#please remove line 1-6         
+
 terraform init
+        
+#create vgw attach to exist vpc
 terraform apply -auto-approve -var="project_id=PROJECT_ID" -var="google_network=GCP_NETWORK_NAME" -var="aws_vpc_id=AWS_VPC_ID" -var="amazon_side_asn=64512" -var="google_side_asn=65534"
+#create four vpn tunnel and use exist vgw        
+terraform apply -auto-approve -var="project_id=PROJECT_ID" -var="google_network=GCP_NETWORK_NAME" -var="aws_vgw_id=AWS_VGW_ID"
 
 
 ```

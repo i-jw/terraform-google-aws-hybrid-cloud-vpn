@@ -31,13 +31,17 @@ variable "aws_region" {
 
 variable "google_network" {
   type        = string
-  default     = "default"
   description = "Google VPN Network name, can be either a name or a self_link"
 }
 variable "aws_vpc_id" {
   type        = string
-  default     = "default"
   description = "AWS VPC Network id, can be either a name or a self_link"
+}
+
+variable "aws_vgw_id" {
+  type        = string
+  default     = ""
+  description = "AWS VPN Gateway id, can be either a name or a self_link"
 }
 
 variable "amazon_side_asn" {

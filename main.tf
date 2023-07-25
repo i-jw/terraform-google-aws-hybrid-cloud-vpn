@@ -1,4 +1,9 @@
-
+terraform {
+  backend "gcs" {
+    bucket = "GCS_BUCKET_NAME"
+    prefix = "hybrid-vpn-gcp-aws"
+  }
+}
 locals {
   ha_vpn_interfaces_ips = [
     for x in google_compute_ha_vpn_gateway.gateway.vpn_interfaces :
@@ -42,8 +47,7 @@ locals {
 }
 
 provider "aws" {
-  version = "~> 3.0"
-  region  = var.aws_region
+  region = var.aws_region
 }
 
 provider "google-beta" {
@@ -90,12 +94,14 @@ resource "aws_customer_gateway" "cgw-beta" {
 }
 
 resource "aws_vpn_gateway" "vpn_gateway" {
+  count  = var.aws_vgw_id != "" ? 0 : 1
   vpc_id = var.aws_vpc_id
 }
 
 resource "aws_vpn_connection" "vpn-alpha" {
-  customer_gateway_id                  = aws_customer_gateway.cgw-alpha.id
-  vpn_gateway_id                       = aws_vpn_gateway.vpn_gateway.id
+  customer_gateway_id = aws_customer_gateway.cgw-alpha.id
+  #  vpn_gateway_id                       = try(var.aws_vgw_id, aws_vpn_gateway.vpn_gateway[0].id)
+  vpn_gateway_id                       = var.aws_vgw_id != "" ? var.aws_vgw_id : aws_vpn_gateway.vpn_gateway[0].id
   type                                 = aws_customer_gateway.cgw-alpha.type
   tunnel1_phase1_encryption_algorithms = var.aws_vpn_configs.encryption_algorithms
   tunnel2_phase1_encryption_algorithms = var.aws_vpn_configs.encryption_algorithms
@@ -117,7 +123,7 @@ resource "aws_vpn_connection" "vpn-alpha" {
 
 resource "aws_vpn_connection" "vpn-beta" {
   customer_gateway_id                  = aws_customer_gateway.cgw-beta.id
-  vpn_gateway_id                       = aws_vpn_gateway.vpn_gateway.id
+  vpn_gateway_id                       = var.aws_vgw_id != "" ? var.aws_vgw_id : aws_vpn_gateway.vpn_gateway[0].id
   type                                 = aws_customer_gateway.cgw-beta.type
   tunnel1_phase1_encryption_algorithms = var.aws_vpn_configs.encryption_algorithms
   tunnel2_phase1_encryption_algorithms = var.aws_vpn_configs.encryption_algorithms
